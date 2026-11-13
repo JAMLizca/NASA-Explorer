@@ -1,5 +1,6 @@
 package com.example.nasaexplorer.presentation.favorites
 
+import android.text.Html
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -96,6 +97,8 @@ fun FavoritesScreen() {
                 style = MaterialTheme.typography.bodyMedium
             )
 
+            Spacer(modifier = Modifier.padding(top = 8.dp))
+
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -111,21 +114,48 @@ fun FavoritesScreen() {
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
+                                text = when (favorite.type) {
+                                    "APOD" -> "Imagen astronómica del día"
+                                    "ASTEROID" -> "Asteroide cercano"
+                                    else -> "Elemento guardado"
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Spacer(modifier = Modifier.padding(top = 4.dp))
+
+                            Text(
                                 text = favorite.title,
                                 style = MaterialTheme.typography.titleMedium
                             )
 
-                            Text("Tipo: ${favorite.type}")
-                            Text("Fecha: ${favorite.date}")
+                            if (favorite.date.isNotBlank()) {
+                                Text(
+                                    text = "Fecha: ${favorite.date}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
 
                             if (favorite.description.isNotBlank()) {
-                                Text(favorite.description)
+                                val cleanDesc = remember(favorite.description) {
+                                    Html.fromHtml(
+                                        favorite.description,
+                                        Html.FROM_HTML_MODE_COMPACT
+                                    ).toString().trim()
+                                }
+                                Text(
+                                    text = cleanDesc,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
                             }
 
                             TextButton(
                                 onClick = {
                                     favoritesViewModel.removeFavorite(favorite.id)
-                                }
+                                },
+                                modifier = Modifier.align(Alignment.End)
                             ) {
                                 Text("Eliminar de favoritos")
                             }

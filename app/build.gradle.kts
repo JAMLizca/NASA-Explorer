@@ -1,7 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
 }
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+
+val nasaApiKey = localProperties.getProperty("NASA_API_KEY") ?: "DEMO_KEY"
 
 android {
     namespace = "com.example.nasaexplorer"
@@ -17,6 +30,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "NASA_API_KEY",
+            "\"$nasaApiKey\""
+        )
     }
 
     buildTypes {
@@ -32,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -74,5 +94,5 @@ dependencies {
     // Room
     implementation("androidx.room:room-runtime:2.8.5")
     implementation("androidx.room:room-ktx:2.8.5")
-    annotationProcessor("androidx.room:room-compiler:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
 }

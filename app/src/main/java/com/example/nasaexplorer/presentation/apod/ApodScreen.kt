@@ -1,15 +1,18 @@
-
 package com.example.nasaexplorer.presentation.apod
 
 import android.text.Html
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
@@ -29,15 +32,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.nasaexplorer.data.local.AppDatabase
+import com.example.nasaexplorer.data.local.entity.FavoriteEntity
+import com.example.nasaexplorer.data.remote.apod.ApodDto
 import com.example.nasaexplorer.data.remote.apod.RetrofitInstance
 import com.example.nasaexplorer.data.repository.ApodRepository
-import com.nasaexplorer.app.data.local.AppDatabase
-import com.nasaexplorer.app.data.local.entity.FavoriteEntity
-import com.nasaexplorer.app.data.repository.FavoriteRepository
+import com.example.nasaexplorer.data.repository.FavoriteRepository
 import kotlinx.coroutines.launch
 
 @Composable
-fun ApodScreen() {
+fun ApodScreen(
+    onApodClick: (ApodDto) -> Unit = {}
+) {
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -125,11 +131,16 @@ fun ApodScreen() {
                             if (isFavorite) {
                                 favoriteRepository.deleteFavorite(favoriteId)
                             } else {
+                                val cleanExplanation = Html.fromHtml(
+                                    apod.explanation ?: "",
+                                    Html.FROM_HTML_MODE_COMPACT
+                                ).toString().trim()
+
                                 favoriteRepository.insertFavorite(
                                     FavoriteEntity(
                                         id = favoriteId,
                                         title = apod.title ?: "APOD",
-                                        description = apod.explanation ?: "",
+                                        description = cleanExplanation,
                                         imageUrl = apod.hdUrl ?: apod.url ?: "",
                                         date = apod.date ?: "",
                                         type = "APOD"
@@ -180,20 +191,51 @@ fun ApodScreen() {
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
+
+                Button(
+                    onClick = {
+                        onApodClick(apod)
+                    }
+                ) {
+                    Text("Ver detalles")
+                }
             }
 
             is ApodUiState.Error -> {
-                Text(
-                    text = "No pudimos cargar la información",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Text(text = state.message)
-
-                Button(
-                    onClick = { apodViewModel.loadApod() }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Intentar nuevamente")
+                    Icon(
+                        imageVector = Icons.Default.CloudOff,
+                        contentDescription = "Sin conexión",
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "No pudimos cargar APOD",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { apodViewModel.loadApod() }
+                    ) {
+                        Text("Intentar nuevamente")
+                    }
                 }
             }
         }
