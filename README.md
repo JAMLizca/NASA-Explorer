@@ -116,25 +116,3 @@ El repositorio incluye `render.yaml` para crear el backend como un Web Service P
 5. En `local.properties`, configura `AI_BACKEND_URL=https://<nombre-del-servicio>.onrender.com/`, compila e instala nuevamente la aplicación. Mantén la URL HTTPS; la versión `release` no permite HTTP sin cifrar.
 
 El nivel gratuito de Render suspende el servicio después de 15 minutos sin solicitudes. La primera llamada posterior puede tardar cerca de un minuto mientras el backend vuelve a iniciarse. El router gratuito de OpenRouter selecciona entre modelos gratuitos disponibles, sujetos a límites de solicitudes; la disponibilidad y cuotas pueden cambiar. Consulta sus [precios y límites](https://openrouter.ai/pricing). El endpoint de explicación es público; antes de compartir ampliamente la aplicación, agrega controles de abuso y límites de solicitudes para proteger la cuota.
-
-## Casos de prueba
-
-Las pruebas JVM en `app/src/test` verifican filtrado por nombre y clasificación, ordenamiento por mediciones, estadísticas con campos ausentes, aceptación/rechazo de respuestas APOD y que NeoWs no reciba rangos de fecha superiores al límite. Los DTO de DONKI y EONET se prueban para garantizar la lectura de las propiedades que se muestran en Inicio. Los flujos de error de interfaz incluyen acciones de reintento; Room y DataStore son persistencia local observable.
-
-## Guion de demostración (5–10 minutos)
-
-1. Presentar el propósito y arquitectura por capas (1 min).
-2. Mostrar APOD, explicación HTML limpia, imagen o contenido no fotográfico y detalle (1–2 min).
-3. Consultar NeoWs, cambiar fechas, buscar un nombre, filtrar objetos potencialmente peligrosos y ordenar por una magnitud (2–3 min).
-4. Guardar y quitar APOD/asteroide de favoritos; cerrar y reabrir para comprobar persistencia (1 min).
-5. Cambiar tema, reiniciar y demostrar que la preferencia se conserva (1 min).
-6. Si se configuró el backend, formular una pregunta contextual y mostrar la nota de procedencia; aclarar que no se predicen impactos (1–2 min).
-
-## Preguntas para la sustentación
-
-- **¿Por qué se usa Repository Pattern?** Aísla las fuentes remotas y locales de la UI y permite probar reglas sin depender de Compose.
-- **¿Cómo se evita duplicar favoritos?** Room declara `id` como clave primaria y usa inserción con reemplazo.
-- **¿Cómo se protege la clave del proveedor de IA?** La credencial vive en el entorno del backend; el APK no la recibe ni la contiene.
-- **¿Qué significan los datos de peligrosidad?** Se presenta literalmente la clasificación recibida de NASA; no es una predicción de impacto.
-- **¿Cómo se limita NeoWs?** Se valida el rango localmente y se permite como máximo una ventana de siete días.
-- **¿Qué hace la app si falta una medición?** Presenta “No disponible” o excluye el dato de cálculos, en lugar de inventar un valor astronómico.
