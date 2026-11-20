@@ -1,3 +1,4 @@
+/** Registra los repositorios, el nombre del proyecto y los módulos incluidos. */
 pluginManagement {
     repositories {
         google {

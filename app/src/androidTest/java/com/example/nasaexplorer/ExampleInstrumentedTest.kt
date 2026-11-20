@@ -1,3 +1,4 @@
+/** Prueba el comportamiento relacionado con example instrumented. */
 package com.example.nasaexplorer
 
 import androidx.test.platform.app.InstrumentationRegistry
@@ -14,6 +15,7 @@ import org.junit.Assert.*
  * See [testing documentation](http://d.android.com/tools/testing).
  */
 @RunWith(AndroidJUnit4::class)
+/** Grupo de pruebas relacionadas con example instrumented. */
 class ExampleInstrumentedTest {
     @Test
     fun useAppContext() {

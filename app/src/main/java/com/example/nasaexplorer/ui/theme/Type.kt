@@ -1,3 +1,4 @@
+/** Define elementos visuales compartidos del tema de la aplicación. */
 package com.example.nasaexplorer.ui.theme
 
 import androidx.compose.material3.Typography

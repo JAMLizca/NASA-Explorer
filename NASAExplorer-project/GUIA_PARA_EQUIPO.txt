@@ -1,0 +1,524 @@
+NASA EXPLORER
+Guia del proyecto para el equipo
+============================================================
+
+1. ¿DE QUE TRATA LA APLICACION?
+
+NASA Explorer es una aplicacion Android nativa hecha con Kotlin y
+Jetpack Compose. Reune publicaciones astronomicas y eventos publicados
+por servicios de NASA en una sola interfaz. La app permite explorar
+APOD, objetos cercanos a la Tierra, eventos naturales EONET, actividad
+espacial DONKI, guardar favoritos y consultar explicaciones con un
+asistente conectado a un backend propio.
+
+La aplicacion no es un producto oficial de NASA. NASA publica los datos;
+NASA Explorer los presenta y facilita su consulta.
+
+Funciones principales:
+- Inicio con accesos a los modulos y feeds recientes de DONKI y EONET.
+- APOD: imagen o contenido multimedia astronomico del dia, explicacion
+  y detalle.
+- NeoWs: asteroides cercanos, rango de fechas, busqueda, filtros,
+  ordenamiento, estadisticas y detalle.
+- Mapa EONET: eventos naturales activos con marcadores y detalle.
+  Las ubicaciones de geometrias complejas son aproximadas.
+- Favoritos de APOD y asteroides, guardados localmente con Room.
+- Ajustes de tema e idioma persistidos localmente.
+- Asistente contextual con historial local. El modelo se consulta desde
+  el backend y las respuestas no deben tratarse como datos oficiales.
+
+
+2. COMO ESTA ORGANIZADO EL CODIGO
+
+Raiz del codigo Android:
+app/src/main/java/com/example/nasaexplorer/
+
+El proyecto separa responsabilidades en capas:
+
+presentation
+  Contiene pantallas Compose, ViewModels, estados de interfaz y
+  navegacion. Solicita datos a repositorios; no define directamente
+  las solicitudes HTTP de cada pantalla.
+
+data
+  Contiene las fuentes de datos: servicios REST y DTO, base de datos
+  Room, preferencias y repositorios que conectan esas fuentes con la
+  presentacion.
+
+domain
+  Contiene calculos de negocio que pueden probarse sin interfaz, como
+  filtros, ordenamientos y estadisticas de asteroides.
+
+ui
+  Contiene componentes visuales compartidos, traducciones de interfaz,
+  colores, tema y tipografia.
+
+Flujo tipico:
+Pantalla Compose -> ViewModel -> Repository -> API o almacenamiento
+local -> Repository -> ViewModel/StateFlow -> pantalla.
+
+
+3. PAQUETES Y RESPONSABILIDAD DE SUS ARCHIVOS
+
+com.example.nasaexplorer
+
+MainActivity.kt
+  Punto de entrada Android. Inicializa la actividad, el tema y la
+  interfaz de navegacion.
+
+
+data.local
+
+AppDatabase.kt
+  Configura Room, registra las entidades y los DAO, mantiene una
+  instancia compartida de la base y declara la migracion de esquema.
+
+data.local.dao
+
+FavoriteDao.kt
+  Inserta, consulta y elimina favoritos; expone consultas observables.
+
+AssistantHistoryDao.kt
+  Inserta, observa, limita a 50 y elimina conversaciones del historial.
+
+data.local.entity
+
+FavoriteEntity.kt
+  Define la fila persistida para un favorito de APOD o un asteroide.
+
+AssistantHistoryEntity.kt
+  Define los campos persistidos de una pregunta, su respuesta y fecha.
+
+data.preferences
+
+UserPreferencesRepository.kt
+  Lee y guarda el tema y el idioma mediante Preferences DataStore.
+
+
+data.remote.ai
+
+AiApi.kt
+  Define el endpoint HTTP del backend para pedir una explicacion.
+
+AiDto.kt
+  Define los modelos de solicitud y respuesta intercambiados con el
+  backend.
+
+data.remote.apod
+
+ApodApi.kt
+  Declara la ruta del servicio APOD de NASA.
+
+ApodDto.kt
+  Representa los campos de la respuesta APOD usados por la aplicacion.
+
+RetrofitInstance.kt
+  Construye y comparte la instancia Retrofit para APOD.
+
+data.remote.neows
+
+NeoWsApi.kt
+  Declara la solicitud del feed de asteroides cercanos NeoWs.
+
+NeoWsDto.kt
+  Modela la respuesta JSON de NeoWs y los datos de aproximacion.
+
+NeoWsRetrofitInstance.kt
+  Construye y comparte el cliente Retrofit de NeoWs.
+
+data.remote.donki
+
+DonkiApi.kt
+  Declara las consultas de notificaciones de clima espacial DONKI.
+
+DonkiDto.kt
+  Modela los campos de las notificaciones DONKI.
+
+DonkiMessageFormatter.kt
+  Limpia el contenido Markdown/HTML del informe y crea un resumen
+  legible con secciones relevantes.
+
+DonkiRetrofitInstance.kt
+  Construye y comparte el cliente Retrofit de DONKI.
+
+data.remote.eonet
+
+EonetApi.kt
+  Declara la consulta de eventos EONET activos y el limite de resultados.
+
+EonetDto.kt
+  Modela eventos, categorias, descripciones y geometria de EONET.
+
+EonetRetrofitInstance.kt
+  Construye y comparte el cliente Retrofit de EONET.
+
+EonetSatelliteImage.kt
+  Construye la URL de una imagen regional de NASA GIBS a partir de la
+  fecha y coordenadas del evento. La imagen muestra la zona, no
+  necesariamente el fenomeno de cerca.
+
+data.remote.images
+
+NasaImageApi.kt
+  Declara la busqueda en NASA Images.
+
+NasaImageDto.kt
+  Modela resultados, metadatos y enlaces de imagen de NASA Images.
+
+NasaImageRetrofitInstance.kt
+  Construye y comparte el cliente Retrofit de NASA Images.
+
+
+data.repository
+
+ApodRepository.kt
+  Solicita y valida APOD; convierte errores del servicio en resultados
+  que la interfaz puede mostrar.
+
+NeoWsRepository.kt
+  Solicita asteroides; valida fechas y el maximo de siete dias, y maneja
+  errores HTTP y de conexion.
+
+DonkiRepository.kt
+  Consulta notificaciones DONKI y adapta errores de la fuente remota.
+
+EonetRepository.kt
+  Consulta eventos EONET y adapta errores de la fuente remota.
+
+FavoriteRepository.kt
+  Centraliza las operaciones de favoritos entre pantallas y Room.
+
+AssistantHistoryRepository.kt
+  Guarda, observa y elimina el historial de preguntas en Room.
+
+AiRepository.kt
+  Llama al backend configurado por la app y traduce errores de red o HTTP.
+  No contiene la clave privada del proveedor de IA.
+
+NasaAsteroidImageRepository.kt
+  Busca fotografias de asteroides en NASA Images y rechaza resultados
+  que no tengan coincidencia de nombre o parezcan ilustraciones.
+
+
+domain.model
+
+AsteroidAnalytics.kt
+  Define opciones de ordenamiento, filtrado y estadisticas puras de
+  asteroides, independientes de la interfaz.
+
+
+presentation.navigation
+
+AppNavigation.kt
+  Declara rutas y transiciones entre Inicio, APOD, Asteroides,
+  Favoritos, Ajustes y detalles. Controla la barra inferior y el acceso
+  contextual al asistente.
+
+presentation.home
+
+HomeScreen.kt
+  Dibuja Inicio, las tarjetas de modulos, feeds DONKI/EONET y el detalle
+  emergente de eventos.
+
+HomeEventsViewModel.kt
+  Carga los feeds DONKI y EONET y expone estados Loading, Success y Error.
+
+HomeEventsViewModelFactory.kt
+  Construye HomeEventsViewModel con los repositorios requeridos.
+
+presentation.apod
+
+ApodScreen.kt
+  Presenta el contenido APOD y sus estados de carga, error y resultado.
+
+ApodViewModel.kt
+  Coordina la consulta APOD, favoritos y estado para la pantalla.
+
+ApodViewModelFactory.kt
+  Construye el ViewModel APOD con sus dependencias.
+
+presentation.neows
+
+AsteroidsScreen.kt
+  Presenta el feed NeoWs, fechas, busqueda, filtros, orden y estadisticas.
+
+AsteroidStatistics.kt
+  Componentes visuales para mostrar estadisticas de asteroides.
+
+NeoWsViewModel.kt
+  Coordina consultas NeoWs, fechas, busqueda, filtros, orden y estados.
+
+NeoWsViewModelFactory.kt
+  Construye NeoWsViewModel con su repositorio.
+
+presentation.detail
+
+ApodDetailScreen.kt
+  Presenta la explicacion, creditos e imagen o multimedia de un APOD.
+
+AsteroidDetailScreen.kt
+  Presenta los datos de aproximacion, mediciones y clasificacion de un
+  asteroide, junto con la accion de favorito.
+
+AsteroidImageViewModel.kt
+  Busca una fotografia verificable del asteroide.
+
+AsteroidImageViewModelFactory.kt
+  Construye AsteroidImageViewModel con su repositorio.
+
+presentation.favorites
+
+FavoritesScreen.kt
+  Lista los favoritos guardados y permite abrir su detalle.
+
+FavoriteDetailScreen.kt
+  Presenta la informacion guardada del favorito seleccionado.
+
+FavoritesViewModel.kt
+  Observa y administra los favoritos locales.
+
+FavoritesViewModelFactory.kt
+  Construye FavoritesViewModel con las dependencias de Room.
+
+presentation.assistant
+
+AssistantDialog.kt
+  Presenta el dialogo del asistente, el compositor de preguntas,
+  respuestas y la interfaz de historial.
+
+AssistantScreen.kt
+  Pantalla independiente del asistente con preguntas sugeridas y campo
+  para escribir.
+
+AssistantViewModel.kt
+  Valida preguntas, coordina solicitudes al backend, publica estados y
+  persiste respuestas exitosas en el historial.
+
+AssistantViewModelFactory.kt
+  Construye el ViewModel y las dependencias de asistente e historial.
+
+presentation.eonet
+
+EonetMapScreen.kt
+  Dibuja el mapa Leaflet/OpenStreetMap, gestiona marcadores y muestra el
+  detalle del evento seleccionado.
+
+EonetMapPoint.kt
+  Convierte geometria EONET en coordenadas aproximadas para los
+  marcadores, conserva la descripcion y categoriza el evento.
+
+EonetMapViewModel.kt
+  Carga eventos EONET y expone los estados de la pantalla de mapa.
+
+EonetMapViewModelFactory.kt
+  Construye EonetMapViewModel con EonetRepository.
+
+presentation.settings
+
+SettingsScreen.kt
+  Presenta tema, idioma y el dialogo Acerca de NASA Explorer.
+
+ThemeViewModel.kt
+  Observa y modifica las preferencias de tema e idioma.
+
+ThemeViewModelFactory.kt
+  Construye ThemeViewModel con el repositorio de preferencias.
+
+
+ui.components
+
+LocalizedText.kt
+  Envuelve el texto Compose y contiene las traducciones de interfaz
+  espanol/ingles usadas por la aplicacion.
+
+ui.theme
+
+Color.kt
+  Define la paleta de colores.
+
+Theme.kt
+  Configura esquemas de color claro y oscuro.
+
+Type.kt
+  Define la tipografia Material usada por la interfaz.
+
+
+4. PRUEBAS
+
+app/src/test/java/com/example/nasaexplorer/
+  Pruebas JVM que no requieren un dispositivo:
+
+AsteroidAnalyticsTest.kt
+  Filtrado, ordenamiento y estadisticas de asteroides.
+
+AsteroidStatisticsTest.kt
+  Calculos de estadisticas y valores ausentes.
+
+EonetMapPointTest.kt
+  Conversión de coordenadas EONET a ubicaciones aproximadas.
+
+LocalizedTextTest.kt
+  Traducciones y comportamiento de textos localizados.
+
+NasaAsteroidImageRepositoryTest.kt
+  Seleccion y validacion de fotografias de asteroides.
+
+RepositoryTest.kt
+  Casos de validacion de repositorios.
+
+SpaceActivityDtoTest.kt
+  Lectura de DTO y formato de datos DONKI/EONET.
+
+ExampleUnitTest.kt
+  Prueba unitaria inicial del proyecto.
+
+app/src/androidTest/java/com/example/nasaexplorer/
+  Pruebas que se ejecutan en Android o un emulador:
+
+AssistantHistoryRepositoryTest.kt
+  Comprueba guardado y borrado del historial usando Room en memoria.
+
+ExampleInstrumentedTest.kt
+  Prueba instrumentada inicial.
+
+
+5. ARCHIVOS DE GRADLE Y BUILD.GRADLE.KTS
+
+settings.gradle.kts (raiz)
+  Define repositorios de plugins, repositorios de dependencias, nombre
+  del proyecto e inclusion del modulo :app.
+
+build.gradle.kts (raiz)
+  Declara plugins comunes disponibles para los submodulos, sin aplicarlos
+  directamente a la aplicacion.
+
+app/build.gradle.kts
+  Configura el modulo Android principal. En particular:
+
+- namespace y applicationId:
+  com.example.nasaexplorer
+- minSdk 24, compileSdk 37 y targetSdk 37.
+- versionCode y versionName de la app.
+- JDK de compilacion Java 11.
+- Habilita Compose y la generacion de BuildConfig.
+- Lee NASA_API_KEY y AI_BACKEND_URL desde local.properties y los genera
+  como constantes de BuildConfig para que el codigo pueda configurarlos.
+- Permite trafico HTTP sin cifrar en debug para backend local; release
+  lo bloquea. En produccion se debe usar HTTPS.
+- Declara dependencias: Compose/Material 3, Navigation, Lifecycle,
+  Retrofit/Gson, Coroutines, ML Kit Translation, Coil y Room.
+- Usa KSP para generar codigo de Room.
+
+gradle/libs.versions.toml
+  Catalogo central de versiones y alias de plugins/librerias. Ayuda a
+  mantener versiones coherentes sin repetirlas en cada referencia.
+
+gradle/wrapper/gradle-wrapper.properties y gradle-wrapper.jar
+  Permiten ejecutar la version de Gradle del proyecto sin instalarla
+  manualmente en cada equipo.
+
+
+6. ¿QUE ES local.properties?
+
+local.properties es un archivo local de configuracion de Android Studio.
+En este proyecto app/build.gradle.kts lo lee para obtener:
+
+NASA_API_KEY
+  Clave para las solicitudes NeoWs y DONKI. Para pruebas se puede usar
+  DEMO_KEY, que tiene una cuota reducida; cada desarrollador puede usar
+  su propia clave NASA.
+
+AI_BACKEND_URL
+  URL base del backend del asistente. En el emulador Android, el valor
+  http://10.0.2.2:8000/ apunta al puerto 8000 de la computadora anfitriona.
+  En un telefono fisico se debe usar una direccion accesible desde ese
+  telefono o la URL HTTPS del backend desplegado.
+
+local.properties.example es una plantilla sin claves reales. Se copia
+como local.properties y se completan los valores adecuados al entorno.
+No se debe enviar local.properties a Git, adjuntarlo en chats ni incluirlo
+en un paquete publico.
+
+IMPORTANTE SOBRE SEGURIDAD:
+Aunque NASA_API_KEY se lee desde local.properties, Gradle la incorpora a
+BuildConfig. BuildConfig no protege secretos: una clave NASA de cliente
+puede extraerse del APK. No poner claves privadas en Kotlin, BuildConfig
+ni local.properties. La clave de OpenRouter debe existir unicamente en
+el entorno del backend, configurada como OPENROUTER_API_KEY.
+
+
+7. BACKEND DEL ASISTENTE
+
+backend/main.py
+  API FastAPI. Valida la pregunta y el contexto, construye instrucciones
+  para el modelo, consulta OpenRouter y devuelve una respuesta. Incluye
+  GET /health y POST /api/assistant/explain.
+
+backend/requirements.txt
+  Dependencias de Python para ejecutar el servicio.
+
+backend/.env.example
+  Plantilla de las variables de entorno del backend. Se configura una
+  copia local llamada backend/.env con OPENROUTER_API_KEY y, opcionalmente,
+  OPENROUTER_MODEL. Ese archivo real es privado y no se comparte.
+
+El backend es independiente de Android. La app envia la pregunta y el
+contexto NASA mostrado; la clave del proveedor de IA se queda en el
+servidor.
+
+Para ejecucion local, desde la raiz del proyecto, consulta la seccion del
+backend en README.md. En general, se instala backend/requirements.txt,
+se copia backend/.env.example como backend/.env y se configura la clave
+privada; luego se inicia Uvicorn con:
+
+uvicorn main:app --app-dir backend --host 0.0.0.0 --port 8000
+
+
+8. PERMISOS, DATOS Y LIMITES
+
+app/src/main/AndroidManifest.xml
+  Declara el permiso INTERNET y la actividad de inicio. El permiso es
+  necesario para NASA, el backend, los mapas y las imagenes remotas.
+
+Room guarda favoritos e historial en el dispositivo. DataStore guarda
+las preferencias de tema e idioma. EONET, DONKI, APOD, NeoWs y NASA Images
+son servicios separados; si un servicio falla, los otros pueden seguir
+funcionando.
+
+Las mediciones de asteroides y las explicaciones de eventos proceden de
+sus fuentes. El asistente puede interpretar los datos, pero su respuesta
+no es una publicacion oficial de NASA ni debe usarse como prediccion.
+
+
+9. COMO COMPILAR Y PROBAR
+
+Desde la raiz del proyecto:
+
+./gradlew :app:assembleDebug
+  Compila el APK debug.
+
+./gradlew :app:testDebugUnitTest
+  Ejecuta las pruebas unitarias JVM.
+
+./gradlew :app:connectedDebugAndroidTest
+  Ejecuta pruebas instrumentadas si hay un emulador o dispositivo
+  conectado.
+
+El backend se ejecuta por separado. Sus instrucciones locales y de
+despliegue estan en la seccion correspondiente de README.md.
+
+
+10. CONSEJOS PARA TRABAJAR EN EQUIPO
+
+- Antes de modificar una pantalla, identifica su ViewModel y repositorio.
+- Mantener HTTP fuera de los composables.
+- Representar carga, exito y error de forma explicita; no inventar datos
+  cuando una API no los entrega.
+- Si cambia el esquema Room, agregar una migracion y actualizar pruebas.
+- Si se agregan textos de interfaz, considerar su traduccion en
+  LocalizedText.kt.
+- No versionar local.properties, backend/.env, claves API, .venv,
+  archivos de build ni datos personales.
+- Revisar los cambios con git status antes de crear un commit.
+
+Fin de la guia.

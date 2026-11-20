@@ -1,8 +1,13 @@
+/** Modela las respuestas JSON recibidas desde el servicio remoto. */
 package com.example.nasaexplorer.data.remote.apod
 
 import com.google.gson.annotations.SerializedName
 
+/** Representa la estructura de datos recibida desde una API. */
 data class ApodDto(
+
+    @SerializedName("post_id")
+    val postId: Long? = null,
 
     @SerializedName("date")
     val date: String? = null,
@@ -29,5 +34,14 @@ data class ApodDto(
     val copyright: String? = null,
 
     @SerializedName("alt")
-    val alt: String? = null
+    val alt: String? = null,
+
+    @SerializedName("permalink")
+    val permalink: String? = null,
+
+    @SerializedName("basic_html")
+    val basicHtml: String? = null,
+
+    @SerializedName("basic_html_url")
+    val basicHtmlUrl: String? = null
 )

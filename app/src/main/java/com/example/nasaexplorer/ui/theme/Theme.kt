@@ -1,43 +1,65 @@
+/** Define elementos visuales compartidos del tema de la aplicación. */
 package com.example.nasaexplorer.ui.theme
 
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 
 private val LightColorScheme = lightColorScheme(
     primary = SpaceBlue,
     secondary = SpaceCyan,
-    tertiary = SpacePurple,
-
+    tertiary = NasaRed,
+    error = NasaRed,
     background = LightBackground,
     surface = LightSurface,
-
+    surfaceVariant = LightSurfaceVariant,
+    primaryContainer = Color(0xFFE3ECFA),
+    secondaryContainer = Color(0xFFDFF5F6),
+    tertiaryContainer = Color(0xFFFBE8E7),
+    errorContainer = Color(0xFFFBE8E7),
     onPrimary = Color.White,
-    onSecondary = Color(0xFF0F172A),
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onError = Color.White,
     onBackground = LightText,
     onSurface = LightText,
+    onSurfaceVariant = LightSecondaryText,
+    onPrimaryContainer = Color(0xFF102A4E),
+    onSecondaryContainer = Color(0xFF103941),
+    onTertiaryContainer = Color(0xFF641C18),
+    onErrorContainer = Color(0xFF641C18),
 )
 
 private val DarkColorScheme = darkColorScheme(
     primary = SpaceBlueDark,
-    secondary = SpaceCyan,
-    tertiary = SpacePurple,
-
+    secondary = SpaceCyanBright,
+    tertiary = NasaRedDark,
+    error = NasaRedDark,
     background = DarkBackground,
     surface = DarkSurface,
-
-    onPrimary = Color.White,
-    onSecondary = Color(0xFF0F172A),
+    surfaceVariant = DarkSurfaceVariant,
+    primaryContainer = Color(0xFF17335C),
+    secondaryContainer = Color(0xFF103640),
+    tertiaryContainer = Color(0xFF542421),
+    errorContainer = Color(0xFF542421),
+    onPrimary = Color(0xFF08244A),
+    onSecondary = Color(0xFF062B33),
+    onTertiary = Color(0xFF3B0B08),
+    onError = Color(0xFF3B0B08),
     onBackground = DarkText,
     onSurface = DarkText,
+    onSurfaceVariant = DarkSecondaryText,
+    onPrimaryContainer = Color(0xFFD5E9FF),
+    onSecondaryContainer = Color(0xFFC7F1F4),
+    onTertiaryContainer = Color(0xFFFFE1DE),
+    onErrorContainer = Color(0xFFFFE1DE),
 )
 
 @Composable
+/** Dibuja en Compose la interfaz asociada a n a s a explorer theme */
 fun NASAExplorerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
@@ -47,17 +69,6 @@ fun NASAExplorerTheme(
         DarkColorScheme
     } else {
         LightColorScheme
-    }
-
-    val view = LocalView.current
-
-    if (!view.isInEditMode) {
-        LocalActivity.current?.window?.let { window ->
-            window.statusBarColor = android.graphics.Color.parseColor(
-                if (darkTheme) "#0B1220" else "#F1F5F9"
-            )
-            window.navigationBarColor = window.statusBarColor
-        }
     }
 
     MaterialTheme(

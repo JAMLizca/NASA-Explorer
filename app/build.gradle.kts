@@ -1,3 +1,4 @@
+/** Configura la aplicación Android, sus variantes, SDK, dependencias y generación de BuildConfig. */
 import java.util.Properties
 
 plugins {
@@ -15,6 +16,7 @@ val localProperties = Properties().apply {
 }
 
 val nasaApiKey = localProperties.getProperty("NASA_API_KEY") ?: "DEMO_KEY"
+val aiBackendUrl = localProperties.getProperty("AI_BACKEND_URL") ?: "http://10.0.2.2:8000/"
 
 android {
     namespace = "com.example.nasaexplorer"
@@ -36,6 +38,11 @@ android {
             "NASA_API_KEY",
             "\"$nasaApiKey\""
         )
+        buildConfigField(
+            "String",
+            "AI_BACKEND_URL",
+            "\"$aiBackendUrl\""
+        )
     }
 
     buildTypes {
@@ -43,6 +50,10 @@ android {
             optimization {
                 enable = false
             }
+            manifestPlaceholders["usesCleartextTraffic"] = "false"
+        }
+        debug {
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
         }
     }
     compileOptions {
@@ -87,6 +98,9 @@ dependencies {
 
     // Corrutinas para operaciones asíncronas
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+
+    // Traducción local opcional de informes DONKI
+    implementation("com.google.mlkit:translate:17.0.3")
 
     // Coil para carga de imágenes
     implementation("io.coil-kt:coil-compose:2.7.0")

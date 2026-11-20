@@ -1,10 +1,16 @@
+/** Gestiona el estado y coordina las operaciones de su pantalla. */
 package com.example.nasaexplorer.presentation.neows
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nasaexplorer.BuildConfig
 import com.example.nasaexplorer.data.remote.neows.AsteroidDto
+import com.example.nasaexplorer.data.repository.NeoWsApiException
 import com.example.nasaexplorer.data.repository.NeoWsRepository
+import com.example.nasaexplorer.domain.model.AsteroidSortOption
+import com.example.nasaexplorer.domain.model.calculateAsteroidStatistics
+import com.example.nasaexplorer.domain.model.filterAndSortAsteroids
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,19 +20,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class AsteroidSortOption {
-    NAME,
-    DIAMETER,
-    SPEED,
-    DISTANCE
-}
-
+/** Define el contrato de asteroids ui state. */
 sealed interface AsteroidsUiState {
     data object Loading : AsteroidsUiState
     data class Success(val asteroids: List<AsteroidDto>) : AsteroidsUiState
-    data class Error(val message: String) : AsteroidsUiState
+    /** Encapsula la responsabilidad principal de error. */
+    data class Error(
+        val message: String,
+        val title: String = "No pudimos cargar los asteroides",
+        val httpStatusCode: Int? = null
+    ) : AsteroidsUiState
 }
 
+/** Mantiene y transforma el estado requerido por la pantalla de neo ws. */
 class NeoWsViewModel(
     private val repository: NeoWsRepository
 ) : ViewModel() {
@@ -45,54 +51,24 @@ class NeoWsViewModel(
     private val _sortOption = MutableStateFlow(AsteroidSortOption.NAME)
     val sortOption: StateFlow<AsteroidSortOption> = _sortOption
 
+    private val _startDate = MutableStateFlow(today())
+    val startDate: StateFlow<String> = _startDate.asStateFlow()
+
+    private val _endDate = MutableStateFlow(today())
+    val endDate: StateFlow<String> = _endDate.asStateFlow()
+
+    private val _statistics = MutableStateFlow(calculateAsteroidStatistics(emptyList()))
+    val statistics = _statistics.asStateFlow()
+
     val filteredAsteroids = combine(
         uiState,
         searchQuery,
         onlyHazardous,
         sortOption
     ) { state, query, hazardous, sort ->
-        if (state is AsteroidsUiState.Success) {
-            val filtered = state.asteroids.filter { asteroid ->
-                val matchesName = asteroid.name
-                    ?.contains(query, ignoreCase = true) == true
-
-                val matchesHazard = !hazardous || asteroid.isPotentiallyHazardous
-
-                matchesName && matchesHazard
-            }
-
-            when (sort) {
-                AsteroidSortOption.NAME ->
-                    filtered.sortedBy {
-                        it.name.orEmpty().lowercase()
-                    }
-
-                AsteroidSortOption.DIAMETER ->
-                    filtered.sortedByDescending {
-                        it.estimatedDiameter?.meters?.maximum ?: 0.0
-                    }
-
-                AsteroidSortOption.SPEED ->
-                    filtered.sortedByDescending {
-                        it.closeApproachData
-                            .firstOrNull()
-                            ?.relativeVelocity
-                            ?.kilometersPerHour
-                            ?.toDoubleOrNull() ?: 0.0
-                    }
-
-                AsteroidSortOption.DISTANCE ->
-                    filtered.sortedBy {
-                        it.closeApproachData
-                            .firstOrNull()
-                            ?.missDistance
-                            ?.kilometers
-                            ?.toDoubleOrNull() ?: Double.MAX_VALUE
-                    }
-            }
-        } else {
-            emptyList()
-        }
+        (state as? AsteroidsUiState.Success)?.let {
+            filterAndSortAsteroids(it.asteroids, query, hazardous, sort)
+        }.orEmpty()
     }
 
     private val apiKey = BuildConfig.NASA_API_KEY
@@ -101,6 +77,7 @@ class NeoWsViewModel(
         loadAsteroids()
     }
 
+    /** Ejecuta o expone la operación de estado asociada a update search query. */
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
@@ -109,33 +86,54 @@ class NeoWsViewModel(
         _onlyHazardous.value = enabled
     }
 
+    /** Ejecuta o expone la operación de estado asociada a update sort option. */
     fun updateSortOption(option: AsteroidSortOption) {
         _sortOption.value = option
     }
 
-    fun loadAsteroids() {
+    fun updateDateRange(start: String, end: String) {
+        _startDate.value = start
+        _endDate.value = end
+    }
+
+    /** Ejecuta o expone la operación de estado asociada a load asteroids. */
+    fun loadAsteroids(
+        start: String = _startDate.value,
+        end: String = _endDate.value
+    ) {
         viewModelScope.launch {
             _uiState.value = AsteroidsUiState.Loading
 
-            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            _startDate.value = start
+            _endDate.value = end
 
             val result = repository.getAsteroids(
-                startDate = today,
-                endDate = today,
+                startDate = start,
+                endDate = end,
                 apiKey = apiKey
             )
 
             result.fold(
                 onSuccess = { response ->
                     val asteroids = response.nearEarthObjects.values.flatten()
+                    _statistics.value = calculateAsteroidStatistics(asteroids)
                     _uiState.value = AsteroidsUiState.Success(asteroids)
                 },
                 onFailure = { error ->
+                    if (error is CancellationException) throw error
                     _uiState.value = AsteroidsUiState.Error(
-                        error.message ?: "No se pudieron cargar los asteroides."
+                        message = error.message ?: "No se pudieron cargar los asteroides.",
+                        title = (error as? NeoWsApiException)?.title
+                            ?: "No pudimos cargar los asteroides",
+                        httpStatusCode = (error as? NeoWsApiException)?.statusCode
                     )
                 }
             )
         }
+    }
+
+    private companion object {
+        /** Ejecuta o expone la operación de estado asociada a today. */
+        fun today(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     }
 }

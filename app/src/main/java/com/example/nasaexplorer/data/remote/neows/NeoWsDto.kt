@@ -1,7 +1,9 @@
+/** Modela las respuestas JSON recibidas desde el servicio remoto. */
 package com.example.nasaexplorer.data.remote.neows
 
 import com.google.gson.annotations.SerializedName
 
+/** Representa la estructura de datos recibida desde una API. */
 data class NeoWsDto(
     @SerializedName("element_count")
     val elementCount: Int = 0,
@@ -10,6 +12,7 @@ data class NeoWsDto(
     val nearEarthObjects: Map<String, List<AsteroidDto>> = emptyMap()
 )
 
+/** Representa la estructura de datos recibida desde una API. */
 data class AsteroidDto(
     @SerializedName("id")
     val id: String? = null,
@@ -21,25 +24,28 @@ data class AsteroidDto(
     val estimatedDiameter: EstimatedDiameterDto? = null,
 
     @SerializedName("is_potentially_hazardous_asteroid")
-    val isPotentiallyHazardous: Boolean = false,
+    val isPotentiallyHazardous: Boolean? = null,
 
     @SerializedName("close_approach_data")
     val closeApproachData: List<CloseApproachDto> = emptyList()
 )
 
+/** Representa la estructura de datos recibida desde una API. */
 data class EstimatedDiameterDto(
     @SerializedName("meters")
     val meters: DiameterRangeDto? = null
 )
 
+/** Representa la estructura de datos recibida desde una API. */
 data class DiameterRangeDto(
     @SerializedName("estimated_diameter_min")
-    val minimum: Double = 0.0,
+    val minimum: Double? = null,
 
     @SerializedName("estimated_diameter_max")
-    val maximum: Double = 0.0
+    val maximum: Double? = null
 )
 
+/** Representa la estructura de datos recibida desde una API. */
 data class CloseApproachDto(
     @SerializedName("close_approach_date")
     val date: String? = null,
@@ -51,11 +57,13 @@ data class CloseApproachDto(
     val missDistance: MissDistanceDto? = null
 )
 
+/** Representa la estructura de datos recibida desde una API. */
 data class RelativeVelocityDto(
     @SerializedName("kilometers_per_hour")
     val kilometersPerHour: String? = null
 )
 
+/** Representa la estructura de datos recibida desde una API. */
 data class MissDistanceDto(
     @SerializedName("kilometers")
     val kilometers: String? = null
